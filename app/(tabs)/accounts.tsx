@@ -173,6 +173,18 @@ export default function AccountsScreen() {
                 </View>
               </Pressable>
             ))}
+            {/* Loan CTA */}
+            <Pressable
+              style={[styles.loanCta, { backgroundColor: colors.cardMint, borderColor: colors.border }]}
+              onPress={() => router.push('/loan')}
+            >
+              <MaterialIcons name="account-balance" size={22} color={colors.primary} />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.loanCtaTitle, { color: colors.textPrimary }]}>Need a Loan?</Text>
+                <Text style={[styles.loanCtaSub, { color: colors.textMuted }]}>Rates from 5.8% · Instant pre-qualification</Text>
+              </View>
+              <MaterialIcons name="chevron-right" size={20} color={colors.textMuted} />
+            </Pressable>
           </>
         )}
 
@@ -301,4 +313,7 @@ const styles = StyleSheet.create({
   savingsPct: { fontSize: FontSize.xs },
   autoSavePill: { flexDirection: 'row', alignItems: 'center', gap: 3, borderRadius: Radius.pill, paddingHorizontal: 8, paddingVertical: 3 },
   autoSaveText: { fontSize: FontSize.xs, fontWeight: FontWeight.semibold },
+  loanCta: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, borderRadius: Radius.xl, padding: Spacing.base, marginTop: Spacing.sm, borderWidth: 1, ...Shadow.sm },
+  loanCtaTitle: { fontSize: FontSize.base, fontWeight: FontWeight.bold },
+  loanCtaSub: { fontSize: FontSize.xs, marginTop: 2 },
 });

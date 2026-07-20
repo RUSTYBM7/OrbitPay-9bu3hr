@@ -29,6 +29,10 @@ export default function RootLayout() {
                   <Stack.Screen name="card-controls" options={{ animation: 'slide_from_right' }} />
                   <Stack.Screen name="transactions" options={{ animation: 'slide_from_right' }} />
                   <Stack.Screen name="auto-save" options={{ animation: 'slide_from_right' }} />
+                  <Stack.Screen name="crypto-trade" options={{ animation: 'slide_from_right' }} />
+                  <Stack.Screen name="wire-transfer" options={{ animation: 'slide_from_right' }} />
+                  <Stack.Screen name="rewards" options={{ animation: 'slide_from_right' }} />
+                  <Stack.Screen name="loan" options={{ animation: 'slide_from_right' }} />
                 </Stack>
               </BiometricLock>
             </WalletProvider>

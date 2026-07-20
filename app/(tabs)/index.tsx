@@ -47,6 +47,9 @@ export default function HomeScreen() {
     if (action === 'Invest') { router.push('/(tabs)/accounts'); return; }
     if (action === 'Crypto') { router.push('/(tabs)/accounts'); return; }
     if (action === 'Cards') { router.push('/(tabs)/cards'); return; }
+    if (action === 'Trade') { router.push('/crypto-trade'); return; }
+    if (action === 'Rewards') { router.push('/rewards'); return; }
+    if (action === 'Wire') { router.push('/wire-transfer'); return; }
     showAlert(action, `${action} — feature available in full build.`, [{ text: 'OK', style: 'default' }]);
   }, [showAlert, router]);
 
@@ -164,6 +167,42 @@ export default function HomeScreen() {
           ].map(a => (
             <QuickAction key={a.label} icon={a.icon} label={a.label} onPress={() => handleQuickAction(a.label)} colors={colors} />
           ))}
+        </View>
+
+        {/* ── Due Soon Bills Strip ── */}
+        <View style={styles.dueSoonWrap}>
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Due Soon</Text>
+            <Pressable onPress={() => router.push('/pay-bills')} hitSlop={12}>
+              <Text style={[styles.sectionAction, { color: colors.mint }]}>Pay Bills</Text>
+            </Pressable>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {[
+              { name: 'PG&E Electric', icon: 'bolt', color: '#F59E0B', amount: 94.20, dueIn: 2 },
+              { name: 'Comcast', icon: 'wifi', color: '#3B82F6', amount: 79.99, dueIn: 5 },
+              { name: 'T-Mobile', icon: 'smartphone', color: '#E5007D', amount: 55.00, dueIn: 7 },
+              { name: 'Netflix', icon: 'tv', color: '#E50914', amount: 18.99, dueIn: 12 },
+            ].map((bill, i) => (
+              <Pressable
+                key={i}
+                style={[styles.dueSoonCard, { backgroundColor: colors.surface, borderColor: bill.dueIn <= 3 ? colors.warning : colors.border }]}
+                onPress={() => router.push('/pay-bills')}
+              >
+                <View style={[styles.dueSoonIcon, { backgroundColor: bill.color + '22' }]}>
+                  <MaterialIcons name={bill.icon as any} size={18} color={bill.color} />
+                </View>
+                <Text style={[styles.dueSoonName, { color: colors.textPrimary }]} numberOfLines={1}>{bill.name}</Text>
+                <Text style={[styles.dueSoonAmount, { color: colors.textPrimary }]}>${bill.amount.toFixed(2)}</Text>
+                <View style={[styles.dueSoonBadge, { backgroundColor: bill.dueIn <= 3 ? colors.warningBg : colors.background }]}>
+                  <MaterialIcons name="schedule" size={10} color={bill.dueIn <= 3 ? colors.warning : colors.textMuted} />
+                  <Text style={[styles.dueSoonDays, { color: bill.dueIn <= 3 ? colors.warning : colors.textMuted }]}>
+                    {bill.dueIn === 1 ? 'Tomorrow' : `${bill.dueIn}d`}
+                  </Text>
+                </View>
+              </Pressable>
+            ))}
+          </ScrollView>
         </View>
 
         {/* ── Spending Insight ── */}
@@ -284,5 +323,15 @@ const styles = StyleSheet.create({
   txTime: { fontSize: FontSize.xs, marginTop: 2 },
   txPendingBadge: { borderRadius: Radius.pill, paddingHorizontal: 6, paddingVertical: 2, marginTop: 2 },
   txPendingText: { fontSize: 9, fontWeight: FontWeight.bold },
+  dueSoonWrap: { marginBottom: Spacing.base },
+  dueSoonCard: {
+    width: 110, borderRadius: Radius.xl, padding: Spacing.md, marginRight: Spacing.sm,
+    borderWidth: 1.5, alignItems: 'center',
+  },
+  dueSoonIcon: { width: 38, height: 38, borderRadius: Radius.circle, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.xs },
+  dueSoonName: { fontSize: FontSize.xs, fontWeight: FontWeight.semibold, textAlign: 'center', marginBottom: 2 },
+  dueSoonAmount: { fontSize: FontSize.sm, fontWeight: FontWeight.bold, marginBottom: 4 },
+  dueSoonBadge: { flexDirection: 'row', alignItems: 'center', gap: 2, borderRadius: Radius.pill, paddingHorizontal: 5, paddingVertical: 2 },
+  dueSoonDays: { fontSize: 9, fontWeight: FontWeight.bold },
   aiFab: { position: 'absolute', right: Spacing.base, width: 52, height: 52, borderRadius: Radius.circle, alignItems: 'center', justifyContent: 'center', ...Shadow.lg },
 });
