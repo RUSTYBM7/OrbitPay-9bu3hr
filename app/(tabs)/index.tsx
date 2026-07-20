@@ -9,87 +9,33 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAlert } from '@/template';
 import { useRouter } from 'expo-router';
 import { useWallet } from '../../hooks/useWallet';
-import { Colors, Spacing, FontSize, FontWeight, Radius, Shadow } from '../../constants/theme';
-import { formatCurrency, formatDate, formatTime } from '../../services/mockData';
+import { useTheme } from '../../contexts/ThemeContext';
+import { Spacing, FontSize, FontWeight, Radius, Shadow } from '../../constants/theme';
+import { formatCurrency, formatDate } from '../../services/mockData';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-// ─── Quick Action Button ─────────────────────────────────────────────
-interface QuickActionProps {
-  icon: string;
-  label: string;
-  onPress: () => void;
-  highlight?: boolean;
-}
-const QuickAction = memo(({ icon, label, onPress, highlight }: QuickActionProps) => (
-  <Pressable
-    style={({ pressed }) => [styles.quickAction, pressed && styles.quickActionPressed]}
-    onPress={onPress}
-    accessibilityLabel={label}
-    hitSlop={8}
-  >
-    <View style={[styles.quickActionIcon, highlight && styles.quickActionIconHighlight]}>
-      <MaterialIcons name={icon as any} size={22} color={highlight ? Colors.textOnDark : Colors.primary} />
+// ─── Quick Action Button ──────────────────────────────────────────────
+interface QuickActionProps { icon: string; label: string; onPress: () => void; highlight?: boolean; colors: any; }
+const QuickAction = memo(({ icon, label, onPress, highlight, colors }: QuickActionProps) => (
+  <Pressable style={({ pressed }) => [styles.quickAction, pressed && styles.quickActionPressed]} onPress={onPress} accessibilityLabel={label} hitSlop={8}>
+    <View style={[styles.quickActionIcon, { backgroundColor: highlight ? colors.primary : colors.background }]}>
+      <MaterialIcons name={icon as any} size={22} color={highlight ? colors.textOnDark : colors.primary} />
     </View>
-    <Text style={styles.quickActionLabel}>{label}</Text>
+    <Text style={[styles.quickActionLabel, { color: colors.textSecondary }]}>{label}</Text>
   </Pressable>
 ));
 
-// ─── Transaction Row ─────────────────────────────────────────────────
-interface TxRowProps {
-  type: string;
-  title: string;
-  subtitle: string;
-  amount: number;
-  currency: string;
-  timestamp: string;
-  icon: string;
-  status: string;
-  recipientAvatar?: string;
-}
-const TxRow = memo(({ type, title, subtitle, amount, currency, timestamp, icon, status, recipientAvatar }: TxRowProps) => {
-  const isCredit = amount > 0;
-  const walletSymbol = currency === 'USD' ? '$' : currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : '';
-  return (
-    <View style={styles.txRow}>
-      <View style={[styles.txIconWrap, isCredit ? styles.txIconCredit : styles.txIconDebit]}>
-        {recipientAvatar ? (
-          <Image source={{ uri: recipientAvatar }} style={styles.txAvatar} contentFit="cover" />
-        ) : (
-          <MaterialIcons name={icon as any} size={18} color={isCredit ? Colors.success : Colors.primary} />
-        )}
-      </View>
-      <View style={styles.txMeta}>
-        <Text style={styles.txTitle} numberOfLines={1}>{title}</Text>
-        <Text style={styles.txSubtitle} numberOfLines={1}>{subtitle}</Text>
-      </View>
-      <View style={styles.txRight}>
-        <Text style={[styles.txAmount, isCredit ? styles.txAmountCredit : styles.txAmountDebit]}>
-          {isCredit ? '+' : ''}{formatCurrency(amount, walletSymbol)}
-        </Text>
-        <Text style={styles.txTime}>{formatDate(timestamp)}</Text>
-        {status === 'pending' && (
-          <View style={styles.txPendingBadge}>
-            <Text style={styles.txPendingText}>Pending</Text>
-          </View>
-        )}
-      </View>
-    </View>
-  );
-});
-
-// ─── Home Screen ─────────────────────────────────────────────────────
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { showAlert } = useAlert();
+  const { colors, isDark } = useTheme();
   const {
     user, wallets, activeWallet, activeWalletIndex, setActiveWalletIndex,
-    transactions, notifications, unreadCount, balanceHidden, toggleBalanceHidden,
+    transactions, unreadCount, balanceHidden, toggleBalanceHidden,
     totalCryptoValue, totalInvestmentValue,
   } = useWallet();
-
   const router = useRouter();
-  const [spendingInsightVisible] = useState(true);
 
   const handleQuickAction = useCallback((action: string) => {
     if (action === 'Send') { router.push('/send-money'); return; }
@@ -97,20 +43,21 @@ export default function HomeScreen() {
     if (action === 'Scan QR') { router.push('/scan-qr'); return; }
     if (action === 'Receive') { router.push('/receive-qr'); return; }
     if (action === 'Pay Bills') { router.push('/pay-bills'); return; }
-    showAlert(action, `${action} — feature available in full build.`, [
-      { text: 'OK', style: 'default' },
-    ]);
+    if (action === 'History' || action === 'All Transactions') { router.push('/transactions'); return; }
+    if (action === 'Invest') { router.push('/(tabs)/accounts'); return; }
+    if (action === 'Crypto') { router.push('/(tabs)/accounts'); return; }
+    if (action === 'Cards') { router.push('/(tabs)/cards'); return; }
+    showAlert(action, `${action} — feature available in full build.`, [{ text: 'OK', style: 'default' }]);
   }, [showAlert, router]);
 
   const balanceDisplay = balanceHidden
     ? '••••••'
     : formatCurrency(activeWallet.amount, activeWallet.symbol);
-
   const changePositive = activeWallet.weeklyChange >= 0;
 
   return (
-    <View style={[styles.root, { paddingTop: insets.top }]}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.background} />
+    <View style={[styles.root, { backgroundColor: colors.background, paddingTop: insets.top }]}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
 
       {/* ── Top Bar ── */}
       <View style={styles.topBar}>
@@ -120,21 +67,11 @@ export default function HomeScreen() {
           contentFit="contain"
         />
         <View style={styles.topActions}>
-          <Pressable
-            style={({ pressed }) => [styles.topIconBtn, pressed && { opacity: 0.7 }]}
-            onPress={() => router.push('/ai-chat')}
-            accessibilityLabel="AI Assistant"
-            hitSlop={8}
-          >
-            <MaterialIcons name="headset-mic" size={22} color={Colors.primary} />
+          <Pressable style={[styles.topIconBtn, { backgroundColor: colors.surface }]} onPress={() => router.push('/ai-chat')} accessibilityLabel="AI Assistant" hitSlop={8}>
+            <MaterialIcons name="headset-mic" size={22} color={colors.primary} />
           </Pressable>
-          <Pressable
-            style={({ pressed }) => [styles.topIconBtn, pressed && { opacity: 0.7 }]}
-            onPress={() => router.push('/notifications')}
-            accessibilityLabel="Notifications"
-            hitSlop={8}
-          >
-            <MaterialIcons name="notifications" size={22} color={Colors.primary} />
+          <Pressable style={[styles.topIconBtn, { backgroundColor: colors.surface }]} onPress={() => router.push('/notifications')} accessibilityLabel="Notifications" hitSlop={8}>
+            <MaterialIcons name="notifications" size={22} color={colors.primary} />
             {unreadCount > 0 && (
               <View style={styles.notifBadge}>
                 <Text style={styles.notifBadgeText}>{unreadCount}</Text>
@@ -144,140 +81,139 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+
         {/* ── Welcome Card ── */}
-        <View style={styles.welcomeCard}>
-          <Image
-            source={{ uri: user.avatar }}
-            style={styles.avatarImg}
-            contentFit="cover"
-            transition={200}
-          />
+        <View style={[styles.welcomeCard, { backgroundColor: colors.surface }]}>
+          <Image source={{ uri: user.avatar }} style={styles.avatarImg} contentFit="cover" transition={200} />
           <View style={styles.welcomeText}>
-            <Text style={styles.welcomeLabel}>Welcome back,</Text>
-            <Text style={styles.welcomeName}>{user.firstName}</Text>
+            <Text style={[styles.welcomeLabel, { color: colors.textMuted }]}>Welcome back,</Text>
+            <Text style={[styles.welcomeName, { color: colors.textPrimary }]}>{user.firstName}</Text>
           </View>
-          <View style={styles.premiumBadge}>
-            <MaterialIcons name="workspace-premium" size={13} color={Colors.primary} />
-            <Text style={styles.premiumText}>PREMIUM</Text>
+          <View style={[styles.premiumBadge, { backgroundColor: colors.background, borderColor: colors.border }]}>
+            <MaterialIcons name="workspace-premium" size={13} color={colors.primary} />
+            <Text style={[styles.premiumText, { color: colors.primary }]}>PREMIUM</Text>
           </View>
         </View>
 
         {/* ── Balance Card ── */}
-        <View style={styles.balanceCard}>
-          {/* Currency Selector */}
+        <View style={[styles.balanceCard, { backgroundColor: colors.surface }]}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.currencyBar}>
             {wallets.map((w, i) => (
               <Pressable
                 key={w.currency}
-                style={[styles.currencyPill, i === activeWalletIndex && styles.currencyPillActive]}
+                style={[styles.currencyPill, { backgroundColor: colors.background, borderColor: colors.border }, i === activeWalletIndex && { backgroundColor: colors.primary, borderColor: colors.primary }]}
                 onPress={() => setActiveWalletIndex(i)}
               >
-                <Text style={[styles.currencyPillText, i === activeWalletIndex && styles.currencyPillTextActive]}>
-                  {w.currency}
-                </Text>
+                <Text style={[styles.currencyPillText, { color: colors.textSecondary }, i === activeWalletIndex && { color: colors.textOnDark }]}>{w.currency}</Text>
               </Pressable>
             ))}
           </ScrollView>
 
           <Pressable style={styles.hideBtn} onPress={toggleBalanceHidden} hitSlop={12}>
-            <MaterialIcons
-              name={balanceHidden ? 'visibility' : 'visibility-off'}
-              size={20}
-              color={Colors.textMuted}
-            />
+            <MaterialIcons name={balanceHidden ? 'visibility' : 'visibility-off'} size={20} color={colors.textMuted} />
           </Pressable>
 
-          <Text style={styles.rateLabel}>
-            1 {activeWallet.currency} = {activeWallet.exchangeRate.toFixed(2)} {activeWallet.currency}
-          </Text>
+          <Text style={[styles.rateLabel, { color: colors.textMuted }]}>1 {activeWallet.currency} = {activeWallet.exchangeRate.toFixed(2)} {activeWallet.currency}</Text>
+          <Text style={[styles.balanceAmount, { color: colors.textPrimary }]}>{balanceDisplay}</Text>
 
-          <Text style={styles.balanceAmount}>{balanceDisplay}</Text>
-
-          <View style={[styles.changePill, changePositive ? styles.changePillUp : styles.changePillDown]}>
-            <MaterialIcons
-              name={changePositive ? 'trending-up' : 'trending-down'}
-              size={14}
-              color={changePositive ? Colors.success : Colors.error}
-            />
-            <Text style={[styles.changeText, { color: changePositive ? Colors.success : Colors.error }]}>
+          <View style={[styles.changePill, changePositive ? { backgroundColor: colors.successBg } : { backgroundColor: colors.errorBg }]}>
+            <MaterialIcons name={changePositive ? 'trending-up' : 'trending-down'} size={14} color={changePositive ? colors.success : colors.error} />
+            <Text style={[styles.changeText, { color: changePositive ? colors.success : colors.error }]}>
               {changePositive ? '+' : ''}{formatCurrency(activeWallet.weeklyChange, activeWallet.symbol)}
             </Text>
-            <Text style={styles.changeLabel}>this week</Text>
+            <Text style={[styles.changeLabel, { color: colors.textMuted }]}>this week</Text>
           </View>
 
-          {/* Portfolio Insight */}
           <View style={styles.portfolioRow}>
-            <View style={styles.portfolioItem}>
-              <Text style={styles.portfolioItemLabel}>Crypto</Text>
-              <Text style={styles.portfolioItemValue}>${totalCryptoValue.toLocaleString('en-US', { maximumFractionDigits: 0 })}</Text>
-            </View>
-            <View style={styles.portfolioSep} />
-            <View style={styles.portfolioItem}>
-              <Text style={styles.portfolioItemLabel}>Investments</Text>
-              <Text style={styles.portfolioItemValue}>${totalInvestmentValue.toLocaleString('en-US', { maximumFractionDigits: 0 })}</Text>
-            </View>
-            <View style={styles.portfolioSep} />
-            <View style={styles.portfolioItem}>
-              <Text style={styles.portfolioItemLabel}>Savings</Text>
-              <Text style={styles.portfolioItemValue}>$15,740</Text>
-            </View>
+            {[
+              { label: 'Crypto', value: `$${totalCryptoValue.toLocaleString('en-US', { maximumFractionDigits: 0 })}` },
+              { label: 'Investments', value: `$${totalInvestmentValue.toLocaleString('en-US', { maximumFractionDigits: 0 })}` },
+              { label: 'Savings', value: '$15,740' },
+            ].map((item, i) => (
+              <React.Fragment key={item.label}>
+                {i > 0 && <View style={[styles.portfolioSep, { backgroundColor: colors.divider }]} />}
+                <View style={styles.portfolioItem}>
+                  <Text style={[styles.portfolioItemLabel, { color: colors.textMuted }]}>{item.label}</Text>
+                  <Text style={[styles.portfolioItemValue, { color: colors.textPrimary }]}>{item.value}</Text>
+                </View>
+              </React.Fragment>
+            ))}
           </View>
         </View>
 
         {/* ── Primary Quick Actions ── */}
-        <View style={styles.actionsRow}>
+        <View style={[styles.actionsRow, { backgroundColor: colors.surface }]}>
           {[
             { icon: 'send', label: 'Send' },
             { icon: 'download', label: 'Receive' },
             { icon: 'qr-code-scanner', label: 'Scan QR' },
             { icon: 'receipt-long', label: 'Pay Bills' },
           ].map(a => (
-            <QuickAction key={a.label} icon={a.icon} label={a.label} onPress={() => handleQuickAction(a.label)} />
+            <QuickAction key={a.label} icon={a.icon} label={a.label} onPress={() => handleQuickAction(a.label)} colors={colors} />
           ))}
         </View>
 
         {/* ── Secondary Actions ── */}
-        <View style={styles.actionsRow}>
+        <View style={[styles.actionsRow, { backgroundColor: colors.surface }]}>
           {[
             { icon: 'credit-card', label: 'Cards' },
             { icon: 'trending-up', label: 'Invest' },
             { icon: 'currency-bitcoin', label: 'Crypto' },
             { icon: 'history', label: 'History' },
           ].map(a => (
-            <QuickAction key={a.label} icon={a.icon} label={a.label} onPress={() => handleQuickAction(a.label)} />
+            <QuickAction key={a.label} icon={a.icon} label={a.label} onPress={() => handleQuickAction(a.label)} colors={colors} />
           ))}
         </View>
 
-        {/* ── Spending Insight Banner ── */}
-        {spendingInsightVisible && (
-          <Pressable
-            style={styles.insightBanner}
-            onPress={() => router.push('/analytics')}
-          >
-            <MaterialIcons name="smart-toy" size={20} color={Colors.primary} />
-            <Text style={styles.insightText}>
-              Your spending is <Text style={{ fontWeight: FontWeight.bold }}>12% below average</Text> this month
-            </Text>
-            <MaterialIcons name="chevron-right" size={18} color={Colors.textMuted} />
-          </Pressable>
-        )}
+        {/* ── Spending Insight ── */}
+        <Pressable style={[styles.insightBanner, { backgroundColor: colors.cardMint, borderColor: colors.border }]} onPress={() => router.push('/analytics')}>
+          <MaterialIcons name="smart-toy" size={20} color={colors.primary} />
+          <Text style={[styles.insightText, { color: colors.textSecondary }]}>
+            Your spending is <Text style={{ fontWeight: FontWeight.bold }}>12% below average</Text> this month
+          </Text>
+          <MaterialIcons name="chevron-right" size={18} color={colors.textMuted} />
+        </Pressable>
 
         {/* ── Recent Transactions ── */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Recent Transactions</Text>
-          <Pressable onPress={() => handleQuickAction('All Transactions')} hitSlop={12}>
-            <Text style={styles.sectionAction}>See All</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Recent Transactions</Text>
+          <Pressable onPress={() => router.push('/transactions')} hitSlop={12}>
+            <Text style={[styles.sectionAction, { color: colors.mint }]}>See All</Text>
           </Pressable>
         </View>
 
-        <View style={styles.txList}>
-          {transactions.slice(0, 6).map(tx => (
-            <TxRow key={tx.id} {...tx} />
-          ))}
+        <View style={[styles.txList, { backgroundColor: colors.surface }]}>
+          {transactions.slice(0, 6).map(tx => {
+            const isCredit = tx.amount > 0;
+            const sym = tx.currency === 'USD' ? '$' : tx.currency === 'EUR' ? '€' : tx.currency === 'GBP' ? '£' : '';
+            return (
+              <View key={tx.id} style={[styles.txRow, { borderBottomColor: colors.divider }]}>
+                <View style={[styles.txIconWrap, isCredit ? { backgroundColor: colors.successBg } : { backgroundColor: colors.background }]}>
+                  {tx.recipientAvatar ? (
+                    <Image source={{ uri: tx.recipientAvatar }} style={styles.txAvatar} contentFit="cover" />
+                  ) : (
+                    <MaterialIcons name={tx.icon as any} size={18} color={isCredit ? colors.success : colors.primary} />
+                  )}
+                </View>
+                <View style={styles.txMeta}>
+                  <Text style={[styles.txTitle, { color: colors.textPrimary }]} numberOfLines={1}>{tx.title}</Text>
+                  <Text style={[styles.txSubtitle, { color: colors.textMuted }]} numberOfLines={1}>{tx.subtitle}</Text>
+                </View>
+                <View style={styles.txRight}>
+                  <Text style={[styles.txAmount, isCredit ? { color: colors.success } : { color: colors.textPrimary }]}>
+                    {isCredit ? '+' : ''}{formatCurrency(tx.amount, sym)}
+                  </Text>
+                  <Text style={[styles.txTime, { color: colors.textMuted }]}>{formatDate(tx.timestamp)}</Text>
+                  {tx.status === 'pending' && (
+                    <View style={[styles.txPendingBadge, { backgroundColor: colors.warningBg }]}>
+                      <Text style={[styles.txPendingText, { color: colors.warning }]}>Pending</Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+            );
+          })}
         </View>
 
         <View style={{ height: 24 }} />
@@ -285,365 +221,68 @@ export default function HomeScreen() {
 
       {/* ── AI Bot FAB ── */}
       <Pressable
-        style={[styles.aiFab, { bottom: insets.bottom + 80 }]}
+        style={[styles.aiFab, { bottom: insets.bottom + 80, backgroundColor: colors.primary }]}
         onPress={() => router.push('/ai-chat')}
         accessibilityLabel="AI Banking Assistant"
       >
-        <MaterialIcons name="smart-toy" size={24} color={Colors.textOnDark} />
+        <MaterialIcons name="smart-toy" size={24} color={colors.textOnDark} />
       </Pressable>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.base,
-    paddingVertical: Spacing.sm,
-  },
-  logoImg: {
-    width: 120,
-    height: 36,
-  },
-  topActions: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-  },
-  topIconBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: Radius.circle,
-    backgroundColor: Colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...Shadow.sm,
-  },
-  notifBadge: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    width: 16,
-    height: 16,
-    borderRadius: Radius.circle,
-    backgroundColor: Colors.error,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  notifBadgeText: {
-    color: Colors.textOnDark,
-    fontSize: 9,
-    fontWeight: FontWeight.bold,
-  },
-  scrollContent: {
-    paddingHorizontal: Spacing.base,
-    paddingBottom: Spacing.xl,
-  },
-  welcomeCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.xl,
-    padding: Spacing.base,
-    marginBottom: Spacing.md,
-    ...Shadow.sm,
-  },
-  avatarImg: {
-    width: 48,
-    height: 48,
-    borderRadius: Radius.circle,
-    marginRight: Spacing.md,
-  },
-  welcomeText: {
-    flex: 1,
-  },
-  welcomeLabel: {
-    fontSize: FontSize.sm,
-    color: Colors.textMuted,
-    fontWeight: FontWeight.regular,
-  },
-  welcomeName: {
-    fontSize: FontSize.xl,
-    color: Colors.textPrimary,
-    fontWeight: FontWeight.bold,
-  },
-  premiumBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: Colors.background,
-    borderRadius: Radius.pill,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 6,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  premiumText: {
-    fontSize: FontSize.xs,
-    color: Colors.primary,
-    fontWeight: FontWeight.bold,
-    letterSpacing: 0.5,
-  },
-  balanceCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.xxl,
-    padding: Spacing.lg,
-    marginBottom: Spacing.md,
-    ...Shadow.md,
-    position: 'relative',
-    overflow: 'hidden',
-  },
-  currencyBar: {
-    marginBottom: Spacing.md,
-  },
-  currencyPill: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 6,
-    borderRadius: Radius.pill,
-    backgroundColor: Colors.background,
-    marginRight: Spacing.sm,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  currencyPillActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
-  currencyPillText: {
-    fontSize: FontSize.sm,
-    color: Colors.textSecondary,
-    fontWeight: FontWeight.semibold,
-  },
-  currencyPillTextActive: {
-    color: Colors.textOnDark,
-  },
-  hideBtn: {
-    position: 'absolute',
-    top: Spacing.lg,
-    right: Spacing.lg,
-    padding: 4,
-  },
-  rateLabel: {
-    fontSize: FontSize.sm,
-    color: Colors.textMuted,
-    marginBottom: Spacing.xs,
-  },
-  balanceAmount: {
-    fontSize: 38,
-    fontWeight: FontWeight.extrabold,
-    color: Colors.textPrimary,
-    letterSpacing: -1,
-    marginBottom: Spacing.sm,
-  },
-  changePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    alignSelf: 'flex-start',
-    borderRadius: Radius.pill,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 5,
-    marginBottom: Spacing.lg,
-  },
-  changePillUp: {
-    backgroundColor: Colors.successBg,
-  },
-  changePillDown: {
-    backgroundColor: Colors.errorBg,
-  },
-  changeText: {
-    fontSize: FontSize.sm,
-    fontWeight: FontWeight.bold,
-  },
-  changeLabel: {
-    fontSize: FontSize.sm,
-    color: Colors.textMuted,
-  },
-  portfolioRow: {
-    flexDirection: 'row',
-    borderTopWidth: 1,
-    borderTopColor: Colors.divider,
-    paddingTop: Spacing.md,
-    gap: 0,
-  },
-  portfolioItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  portfolioItemLabel: {
-    fontSize: FontSize.xs,
-    color: Colors.textMuted,
-    marginBottom: 2,
-  },
-  portfolioItemValue: {
-    fontSize: FontSize.sm,
-    fontWeight: FontWeight.bold,
-    color: Colors.textPrimary,
-  },
-  portfolioSep: {
-    width: 1,
-    backgroundColor: Colors.divider,
-    marginVertical: 2,
-  },
-  actionsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.xl,
-    paddingVertical: Spacing.base,
-    paddingHorizontal: Spacing.sm,
-    marginBottom: Spacing.md,
-    ...Shadow.sm,
-  },
-  quickAction: {
-    flex: 1,
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  quickActionPressed: {
-    opacity: 0.7,
-    transform: [{ scale: 0.94 }],
-  },
-  quickActionIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: Radius.circle,
-    backgroundColor: Colors.background,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  quickActionIconHighlight: {
-    backgroundColor: Colors.primary,
-  },
-  quickActionLabel: {
-    fontSize: FontSize.xs,
-    color: Colors.textSecondary,
-    fontWeight: FontWeight.medium,
-    textAlign: 'center',
-  },
-  insightBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    backgroundColor: Colors.cardMint,
-    borderRadius: Radius.lg,
-    padding: Spacing.md,
-    marginBottom: Spacing.base,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  insightText: {
-    flex: 1,
-    fontSize: FontSize.sm,
-    color: Colors.textSecondary,
-    lineHeight: 18,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.md,
-  },
-  sectionTitle: {
-    fontSize: FontSize.lg,
-    fontWeight: FontWeight.bold,
-    color: Colors.textPrimary,
-  },
-  sectionAction: {
-    fontSize: FontSize.sm,
-    color: Colors.mint,
-    fontWeight: FontWeight.semibold,
-  },
-  txList: {
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.xl,
-    overflow: 'hidden',
-    ...Shadow.sm,
-  },
-  txRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: Spacing.base,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.divider,
-  },
-  txIconWrap: {
-    width: 42,
-    height: 42,
-    borderRadius: Radius.circle,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: Spacing.md,
-  },
-  txIconCredit: {
-    backgroundColor: Colors.successBg,
-  },
-  txIconDebit: {
-    backgroundColor: Colors.background,
-  },
-  txAvatar: {
-    width: 42,
-    height: 42,
-    borderRadius: Radius.circle,
-  },
-  txMeta: {
-    flex: 1,
-    marginRight: Spacing.sm,
-  },
-  txTitle: {
-    fontSize: FontSize.sm,
-    fontWeight: FontWeight.semibold,
-    color: Colors.textPrimary,
-  },
-  txSubtitle: {
-    fontSize: FontSize.xs,
-    color: Colors.textMuted,
-    marginTop: 2,
-  },
-  txRight: {
-    alignItems: 'flex-end',
-  },
-  txAmount: {
-    fontSize: FontSize.sm,
-    fontWeight: FontWeight.bold,
-  },
-  txAmountCredit: {
-    color: Colors.success,
-  },
-  txAmountDebit: {
-    color: Colors.textPrimary,
-  },
-  txTime: {
-    fontSize: FontSize.xs,
-    color: Colors.textMuted,
-    marginTop: 2,
-  },
-  txPendingBadge: {
-    backgroundColor: Colors.warningBg,
-    borderRadius: Radius.pill,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    marginTop: 2,
-  },
-  txPendingText: {
-    fontSize: 9,
-    color: Colors.warning,
-    fontWeight: FontWeight.bold,
-  },
-  aiFab: {
-    position: 'absolute',
-    right: Spacing.base,
-    width: 52,
-    height: 52,
-    borderRadius: Radius.circle,
-    backgroundColor: Colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...Shadow.lg,
-  },
+  root: { flex: 1 },
+  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.base, paddingVertical: Spacing.sm },
+  logoImg: { width: 120, height: 36 },
+  topActions: { flexDirection: 'row', gap: Spacing.sm },
+  topIconBtn: { width: 40, height: 40, borderRadius: Radius.circle, alignItems: 'center', justifyContent: 'center', ...Shadow.sm },
+  notifBadge: { position: 'absolute', top: 4, right: 4, width: 16, height: 16, borderRadius: Radius.circle, backgroundColor: '#E74C3C', alignItems: 'center', justifyContent: 'center' },
+  notifBadgeText: { color: '#FFFFFF', fontSize: 9, fontWeight: FontWeight.bold },
+  scrollContent: { paddingHorizontal: Spacing.base, paddingBottom: Spacing.xl },
+  welcomeCard: { flexDirection: 'row', alignItems: 'center', borderRadius: Radius.xl, padding: Spacing.base, marginBottom: Spacing.md, ...Shadow.sm },
+  avatarImg: { width: 48, height: 48, borderRadius: Radius.circle, marginRight: Spacing.md },
+  welcomeText: { flex: 1 },
+  welcomeLabel: { fontSize: FontSize.sm, fontWeight: FontWeight.regular },
+  welcomeName: { fontSize: FontSize.xl, fontWeight: FontWeight.bold },
+  premiumBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: Radius.pill, paddingHorizontal: Spacing.md, paddingVertical: 6, borderWidth: 1 },
+  premiumText: { fontSize: FontSize.xs, fontWeight: FontWeight.bold, letterSpacing: 0.5 },
+  balanceCard: { borderRadius: Radius.xxl, padding: Spacing.lg, marginBottom: Spacing.md, ...Shadow.md, position: 'relative', overflow: 'hidden' },
+  currencyBar: { marginBottom: Spacing.md },
+  currencyPill: { paddingHorizontal: Spacing.md, paddingVertical: 6, borderRadius: Radius.pill, marginRight: Spacing.sm, borderWidth: 1 },
+  currencyPillText: { fontSize: FontSize.sm, fontWeight: FontWeight.semibold },
+  hideBtn: { position: 'absolute', top: Spacing.lg, right: Spacing.lg, padding: 4 },
+  rateLabel: { fontSize: FontSize.sm, marginBottom: Spacing.xs },
+  balanceAmount: { fontSize: 38, fontWeight: FontWeight.extrabold, letterSpacing: -1, marginBottom: Spacing.sm },
+  changePill: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', borderRadius: Radius.pill, paddingHorizontal: Spacing.md, paddingVertical: 5, marginBottom: Spacing.lg },
+  changeText: { fontSize: FontSize.sm, fontWeight: FontWeight.bold },
+  changeLabel: { fontSize: FontSize.sm },
+  portfolioRow: { flexDirection: 'row', borderTopWidth: 1, paddingTop: Spacing.md },
+  portfolioItem: { flex: 1, alignItems: 'center' },
+  portfolioItemLabel: { fontSize: FontSize.xs, marginBottom: 2 },
+  portfolioItemValue: { fontSize: FontSize.sm, fontWeight: FontWeight.bold },
+  portfolioSep: { width: 1, marginVertical: 2 },
+  actionsRow: { flexDirection: 'row', justifyContent: 'space-between', borderRadius: Radius.xl, paddingVertical: Spacing.base, paddingHorizontal: Spacing.sm, marginBottom: Spacing.md, ...Shadow.sm },
+  quickAction: { flex: 1, alignItems: 'center', gap: Spacing.xs },
+  quickActionPressed: { opacity: 0.7, transform: [{ scale: 0.94 }] },
+  quickActionIcon: { width: 48, height: 48, borderRadius: Radius.circle, alignItems: 'center', justifyContent: 'center' },
+  quickActionLabel: { fontSize: FontSize.xs, fontWeight: FontWeight.medium, textAlign: 'center' },
+  insightBanner: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, borderRadius: Radius.lg, padding: Spacing.md, marginBottom: Spacing.base, borderWidth: 1 },
+  insightText: { flex: 1, fontSize: FontSize.sm, lineHeight: 18 },
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.md },
+  sectionTitle: { fontSize: FontSize.lg, fontWeight: FontWeight.bold },
+  sectionAction: { fontSize: FontSize.sm, fontWeight: FontWeight.semibold },
+  txList: { borderRadius: Radius.xl, overflow: 'hidden', ...Shadow.sm },
+  txRow: { flexDirection: 'row', alignItems: 'center', padding: Spacing.base, borderBottomWidth: 1 },
+  txIconWrap: { width: 42, height: 42, borderRadius: Radius.circle, alignItems: 'center', justifyContent: 'center', marginRight: Spacing.md },
+  txAvatar: { width: 42, height: 42, borderRadius: Radius.circle },
+  txMeta: { flex: 1, marginRight: Spacing.sm },
+  txTitle: { fontSize: FontSize.sm, fontWeight: FontWeight.semibold },
+  txSubtitle: { fontSize: FontSize.xs, marginTop: 2 },
+  txRight: { alignItems: 'flex-end' },
+  txAmount: { fontSize: FontSize.sm, fontWeight: FontWeight.bold },
+  txTime: { fontSize: FontSize.xs, marginTop: 2 },
+  txPendingBadge: { borderRadius: Radius.pill, paddingHorizontal: 6, paddingVertical: 2, marginTop: 2 },
+  txPendingText: { fontSize: 9, fontWeight: FontWeight.bold },
+  aiFab: { position: 'absolute', right: Spacing.base, width: 52, height: 52, borderRadius: Radius.circle, alignItems: 'center', justifyContent: 'center', ...Shadow.lg },
 });
