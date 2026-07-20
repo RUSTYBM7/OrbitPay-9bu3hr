@@ -223,11 +223,11 @@ export default function HomeScreen() {
         </View>
 
         <View style={[styles.txList, { backgroundColor: colors.surface }]}>
-          {transactions.slice(0, 6).map(tx => {
+          {transactions.slice(0, 6).map((tx, txIdx) => {
             const isCredit = tx.amount > 0;
             const sym = tx.currency === 'USD' ? '$' : tx.currency === 'EUR' ? '€' : tx.currency === 'GBP' ? '£' : '';
             return (
-              <View key={tx.id} style={[styles.txRow, { borderBottomColor: colors.divider }]}>
+              <Pressable key={tx.id} style={[styles.txRow, { borderBottomColor: colors.divider }]} onPress={() => router.push({ pathname: '/transaction-detail', params: { id: tx.id } })}>
                 <View style={[styles.txIconWrap, isCredit ? { backgroundColor: colors.successBg } : { backgroundColor: colors.background }]}>
                   {tx.recipientAvatar ? (
                     <Image source={{ uri: tx.recipientAvatar }} style={styles.txAvatar} contentFit="cover" />
@@ -250,12 +250,12 @@ export default function HomeScreen() {
                     </View>
                   )}
                 </View>
-              </View>
+              </Pressable>
             );
           })}
         </View>
 
-        <View style={{ height: 24 }} />
+        <View style={{ height: 32 }} />
       </ScrollView>
 
       {/* ── AI Bot FAB ── */}
@@ -273,12 +273,12 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.base, paddingVertical: Spacing.sm },
-  logoImg: { width: 120, height: 36 },
+  logoImg: { width: 160, height: 46 },
   topActions: { flexDirection: 'row', gap: Spacing.sm },
   topIconBtn: { width: 40, height: 40, borderRadius: Radius.circle, alignItems: 'center', justifyContent: 'center', ...Shadow.sm },
   notifBadge: { position: 'absolute', top: 4, right: 4, width: 16, height: 16, borderRadius: Radius.circle, backgroundColor: '#E74C3C', alignItems: 'center', justifyContent: 'center' },
   notifBadgeText: { color: '#FFFFFF', fontSize: 9, fontWeight: FontWeight.bold },
-  scrollContent: { paddingHorizontal: Spacing.base, paddingBottom: Spacing.xl },
+  scrollContent: { paddingHorizontal: Spacing.base, paddingBottom: 120 },
   welcomeCard: { flexDirection: 'row', alignItems: 'center', borderRadius: Radius.xl, padding: Spacing.base, marginBottom: Spacing.md, ...Shadow.sm },
   avatarImg: { width: 48, height: 48, borderRadius: Radius.circle, marginRight: Spacing.md },
   welcomeText: { flex: 1 },

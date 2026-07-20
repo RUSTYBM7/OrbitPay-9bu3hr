@@ -17,6 +17,7 @@ export default function RootLayout() {
                   <Stack.Screen name="index" />
                   <Stack.Screen name="(tabs)" />
                   <Stack.Screen name="login" />
+                  <Stack.Screen name="onboarding" options={{ gestureEnabled: false }} />
                   <Stack.Screen name="send-money" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
                   <Stack.Screen name="kyc" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
                   <Stack.Screen name="notifications" options={{ animation: 'slide_from_right' }} />
@@ -33,6 +34,11 @@ export default function RootLayout() {
                   <Stack.Screen name="wire-transfer" options={{ animation: 'slide_from_right' }} />
                   <Stack.Screen name="rewards" options={{ animation: 'slide_from_right' }} />
                   <Stack.Screen name="loan" options={{ animation: 'slide_from_right' }} />
+                  <Stack.Screen name="split-bill" options={{ animation: 'slide_from_bottom', presentation: 'modal' }} />
+                  <Stack.Screen name="budget" options={{ animation: 'slide_from_right' }} />
+                  <Stack.Screen name="subscriptions" options={{ animation: 'slide_from_right' }} />
+                  <Stack.Screen name="transaction-detail" options={{ animation: 'slide_from_right' }} />
+                  <Stack.Screen name="edit-profile" options={{ animation: 'slide_from_right' }} />
                 </Stack>
               </BiometricLock>
             </WalletProvider>
